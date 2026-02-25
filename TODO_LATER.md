@@ -17,6 +17,7 @@ Items to be implemented later to achieve full parity with Jrocessing or beyond:
   - Curve and Bezier implementations.
 - **Typography:**
   - `JFont` and better text rendering.
+  - Expanded font support (loading .vlw, .ttf, .otf files).
 - **Images:**
   - `JImage`, `loadImage()`, and pixel manipulation (`pixels[]`).
 - **Additional Libraries:**

@@ -9,13 +9,15 @@ public class Preprocessor {
     public static String preprocess(String sketchName, String code) {
         StringBuilder sb = new StringBuilder();
         sb.append("package jrocessing.sketches;\n\n");
-        sb.append("import jrocessing.core.JApplet;\n");
-        sb.append("import java.awt.*;\n\n");
+        sb.append("import jrocessing.core.*;\n");
+        sb.append("import java.awt.*;\n");
+        sb.append("import java.util.*;\n\n");
         sb.append("public class ").append(sketchName).append(" extends JApplet {\n");
         
-        // Improved preprocessor: make sure setup/draw are public
+        // Improved preprocessor: make sure top-level methods are public
         String[] lines = code.split("\n");
-        Pattern p = Pattern.compile("^\\s*void\\s+(setup|draw|mousePressed|mouseReleased|mouseClicked|mouseMoved|mouseDragged|keyPressed|keyReleased|keyTyped)\\s*\\(");
+        // Simplified: any void method starting at the beginning of a line (with optional whitespace)
+        Pattern p = Pattern.compile("^\\s*void\\s+([a-zA-Z0-9_]+)\\s*\\(");
         for (String line : lines) {
             Matcher m = p.matcher(line);
             if (m.find()) {

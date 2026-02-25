@@ -734,12 +734,23 @@ public class JApplet extends JPanel implements Runnable, MouseListener, MouseMot
             JFrame frame = new JFrame(sketchClassName);
             sketch.frame = frame;
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setResizable(true); // Ensure the window is resizable
             frame.add(sketch);
             frame.pack();
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
             sketch.requestFocusInWindow();
             
+            // Handle window resizing
+            frame.addComponentListener(new ComponentAdapter() {
+                @Override
+                public void componentResized(ComponentEvent e) {
+                    sketch.width = sketch.getWidth();
+                    sketch.height = sketch.getHeight();
+                    sketch.initCanvas(); // Re-initialize canvas with new dimensions
+                }
+            });
+
             sketch.animationThread = new Thread(sketch);
             sketch.animationThread.start();
             

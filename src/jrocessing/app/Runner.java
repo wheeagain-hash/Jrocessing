@@ -7,12 +7,12 @@ import java.nio.file.*;
 public class Runner {
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Usage: Runner <sketchName> <jdeFilePath>");
+            System.err.println("Usage: Runner <sketchName> <pdeFilePath>");
             System.exit(1);
         }
 
         String sketchName = args[0];
-        String jdeFilePath = args[1];
+        String pdeFilePath = args[1];
 
         try {
             // Setup directories
@@ -26,7 +26,7 @@ public class Runner {
             Files.createDirectories(coreClassPath);
 
             // 1. Preprocess
-            String code = Files.readString(Paths.get(jdeFilePath));
+            String code = Files.readString(Paths.get(pdeFilePath));
             String processedCode = Preprocessor.preprocess(sketchName, code);
             
             Path javaFilePath = sketchJavaPath.resolve(sketchName + ".java");

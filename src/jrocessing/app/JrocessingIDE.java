@@ -2,6 +2,7 @@ package jrocessing.app;
 
 import javax.swing.*;
 import javax.swing.text.*;
+import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -10,6 +11,7 @@ import java.util.regex.*;
 
 public class JrocessingIDE extends JFrame {
     private JTextPane editor;
+    private JTextArea lineNumbers;
     private JTextArea console;
     private JButton runButton;
     private JButton stopButton;
@@ -38,9 +40,33 @@ public class JrocessingIDE extends JFrame {
         // Editor
         editor = new JTextPane();
         editor.setFont(new Font("Monospaced", Font.PLAIN, 14));
+
+        lineNumbers = new JTextArea("1");
+        lineNumbers.setBackground(new Color(220, 220, 220));
+        lineNumbers.setEditable(false);
+        lineNumbers.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        lineNumbers.setMargin(new Insets(2, 5, 2, 5));
+
+        editor.getStyledDocument().addDocumentListener(new DocumentListener() {
+            private void update() {
+                int lineCount = editor.getText().split("\n", -1).length;
+                StringBuilder sb = new StringBuilder();
+                for (int i = 1; i <= lineCount; i++) {
+                    sb.append(i).append("\n");
+                }
+                SwingUtilities.invokeLater(() -> lineNumbers.setText(sb.toString()));
+            }
+            public void insertUpdate(DocumentEvent e) { update(); }
+            public void removeUpdate(DocumentEvent e) { update(); }
+            public void changedUpdate(DocumentEvent e) { update(); }
+        });
+
         // Add a simple document listener for syntax highlighting
         editor.getStyledDocument().addDocumentListener(new SyntaxHighlighter(editor));
-        add(new JScrollPane(editor), BorderLayout.CENTER);
+
+        JScrollPane scrollPane = new JScrollPane(editor);
+        scrollPane.setRowHeaderView(lineNumbers);
+        add(scrollPane, BorderLayout.CENTER);
 
         // Console
         console = new JTextArea(10, 80);
@@ -62,12 +88,37 @@ public class JrocessingIDE extends JFrame {
         runButton.setEnabled(true);
     }
 
+    private void highlightErrorLine(int line) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                Element root = editor.getDocument().getDefaultRootElement();
+                if (line > 0 && line <= root.getElementCount()) {
+                    Element lineElem = root.getElement(line - 1);
+                    editor.setCaretPosition(lineElem.getStartOffset());
+                    editor.requestFocusInWindow();
+                    editor.select(lineElem.getStartOffset(), lineElem.getEndOffset());
+                }
+            } catch (Exception e) {}
+        });
+    }
+
     private void runSketch() {
         if (currentProcess != null && currentProcess.isAlive()) {
             stopSketch();
         }
 
         String code = editor.getText();
+
+        // Basic linting
+        int braceBalance = 0;
+        for (char c : code.toCharArray()) {
+            if (c == '{') braceBalance++;
+            if (c == '}') braceBalance--;
+        }
+        if (braceBalance > 0) console.setText("Warning: Mismatched braces (too many { )\n");
+        else if (braceBalance < 0) console.setText("Warning: Mismatched braces (too many } )\n");
+        else console.setText("");
+
         console.setText("Running sketch...\n");
         runButton.setEnabled(false);
         stopButton.setEnabled(true);
@@ -76,11 +127,11 @@ public class JrocessingIDE extends JFrame {
             try {
                 File tempDir = new File("temp");
                 tempDir.mkdirs();
-                File jdeFile = new File(tempDir, currentSketchName + ".jde");
-                Files.writeString(jdeFile.toPath(), code);
+                File pdeFile = new File(tempDir, currentSketchName + ".pde");
+                Files.writeString(pdeFile.toPath(), code);
                 
                 ProcessBuilder pb = new ProcessBuilder(
-                    "java", "-cp", "build/classes", "jrocessing.app.Runner", currentSketchName, jdeFile.getAbsolutePath()
+                    "java", "-cp", "build/classes", "jrocessing.app.Runner", currentSketchName, pdeFile.getAbsolutePath()
                 );
                 pb.redirectErrorStream(true);
                 currentProcess = pb.start();
@@ -89,7 +140,22 @@ public class JrocessingIDE extends JFrame {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String finalLine = line;
-                    SwingUtilities.invokeLater(() -> console.append(finalLine + "\n"));
+                    SwingUtilities.invokeLater(() -> {
+                        console.append(finalLine + "\n");
+                        // Scroll to bottom
+                        console.setCaretPosition(console.getDocument().getLength());
+                    });
+
+                    // Parse error: "Sketch.java:10: error: ..."
+                    if (finalLine.contains(currentSketchName + ".java:")) {
+                        Pattern errorPattern = Pattern.compile(currentSketchName + "\\.java:(\\d+):");
+                        Matcher matcher = errorPattern.matcher(finalLine);
+                        if (matcher.find()) {
+                            int javaLine = Integer.parseInt(matcher.group(1));
+                            int pdeLine = javaLine - 6; // Offset from Preprocessor (approx)
+                            highlightErrorLine(pdeLine);
+                        }
+                    }
                 }
                 
                 currentProcess.waitFor();

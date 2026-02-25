@@ -6,21 +6,9 @@ mkdir -p build/classes
 mkdir -p build/sketches/src
 mkdir -p build/sketches/bin
 
-# Compile Core Library
-echo "Compiling Jrocessing Core..."
-javac -d build/classes src/jrocessing/core/JApplet.java
-
-# Compile Preprocessor
-echo "Compiling Jrocessing Preprocessor..."
-javac -d build/classes -cp build/classes src/jrocessing/preproc/Preprocessor.java
-
-# Compile Runner
-echo "Compiling Jrocessing Runner..."
-javac -d build/classes -cp build/classes src/jrocessing/app/Runner.java
-
-# Compile IDE
-echo "Compiling Jrocessing IDE..."
-javac -d build/classes -cp build/classes src/jrocessing/app/JrocessingIDE.java
+# Compile everything
+echo "Compiling Jrocessing..."
+javac -d build/classes -sourcepath src src/jrocessing/app/JrocessingIDE.java src/jrocessing/core/JApplet.java src/jrocessing/core/JVector.java src/jrocessing/core/JImage.java src/jrocessing/preproc/Preprocessor.java src/jrocessing/app/Runner.java
 
 # Run IDE if requested
 if [ "$1" == "run" ]; then
